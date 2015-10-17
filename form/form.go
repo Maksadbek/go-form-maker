@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 )
 
 type MyForm struct {
@@ -16,40 +17,35 @@ type MyForm struct {
 	Token        string `field:"token" type:"hidden" default:"true"`
 }
 
-func GenInputWithLabel(field, name, inputType string) string {
+func GenInputWithLabel(tags reflect.StructTag, value interface{}) string {
+	var (
+		field = tags.Get("field")
+		name  = tags.Get("name")
+	)
 	// add label
 	form := fmt.Sprintf(`<label for="%s">%s</label>`, field, name)
 	// new line
 	form += "\n"
 	// add input
-	form += fmt.Sprintf(`<input type="%s" name="%s"`, inputType, field)
-	// at the end add closing '>' and line break symbol '<br>'
-	form += "><br>\n"
+	form += GenInput(tags, value)
 	return form
 }
-func GenInputWithLabel(field, name, inputType string, value interface{}) string {
-	// add label
-	form := fmt.Sprintf(`<label for="%s">%s</label>`, field, name)
-	// new line
-	form += "\n"
+func GenInput(tags reflect.StructTag, value interface{}) string {
+	var field, inputType = tags.Get("field"), tags.Get("type")
 	// add input
-	form += fmt.Sprintf(`<input type="%s" name="%s"`, inputType, field)
+	form := fmt.Sprintf(`<input type="%s" name="%s"`, inputType, field)
 	// get value of default value and add if it is not empty
 	val := fmt.Sprintf("%v", value)
-	if val != "" {
-		form += fmt.Sprintf(` value=%v`, val)
+	if tags.Get("default") == "true" {
+		form += fmt.Sprintf(` value="%v"`, val)
 	}
-	// at the end add closing '>' and line break symbol '<br>'
-	form += "><br>\n"
-	return form
-}
-func GenInput(field, name, inputType string, value interface{}) string {
-	// add input
-	form += fmt.Sprintf(`<input type="%s" name="%s"`, inputType, field)
-	// get value of default value and add if it is not empty
-	val := fmt.Sprintf("%v", value)
-	if val != "" {
-		form += fmt.Sprintf(` value=%v`, val)
+	// if input type is radio, then parse its value
+	if inputType == "radio" {
+		s := strings.Split(tags.Get("radio"), ";")
+		form += fmt.Sprintf(` value="%s" `, s[0])
+		if len(s) == 2 {
+			form += s[1]
+		}
 	}
 	// at the end add closing '>' and line break symbol '<br>'
 	form += "><br>\n"
@@ -69,19 +65,18 @@ func FormCreate(form *MyForm) (string, error) {
 		case "":
 			fallthrough
 		case "text":
-			XMLForm += GenInputWithLabel(field.Tag.Get("field"), field.Tag.Get("name"), field.Tag.Get("type"), value)
+			fallthrough
 		case "textarea":
-			XMLForm += GenInputWithLabel(field.Tag.Get("field"), field.Tag.Get("name"), field.Tag.Get("type"), value)
-		case "radio":
-			XMLForm += GenInputWithLabel(field.Tag.Get("field"), field.Tag.Get("name"), field.Tag.Get("type"), value)
+			fallthrough
 		case "password":
-			XMLForm += GenInputWithLabel(field.Tag.Get("field"), field.Tag.Get("name"), field.Tag.Get("type"), value)
-		case "hidden":
-			XMLForm += GenInput(field.Tag.Get("field"), field.Tag.Get("name"), field.Tag.Get("type"), value)
-		case "checkbox":
-			XMLForm += fmt.Sprintf("<label for=\"%s\">%s</label>\n", field.Tag.Get("field"), field.Tag.Get("name"))
-			XMLForm += fmt.Sprintf("<input type=\"%s\" name=\"%s\"><br>\n", field.Tag.Get("type"), field.Tag.Get("name"))
+			fallthrough
 		case "button":
+			XMLForm += GenInputWithLabel(field.Tag, value)
+		case "radio":
+			XMLForm += GenInputWithLabel(field.Tag, value)
+		case "hidden":
+			XMLForm += GenInput(field.Tag, value)
+		case "checkbox":
 			XMLForm += fmt.Sprintf("<label for=\"%s\">%s</label>\n", field.Tag.Get("field"), field.Tag.Get("name"))
 			XMLForm += fmt.Sprintf("<input type=\"%s\" name=\"%s\"><br>\n", field.Tag.Get("type"), field.Tag.Get("name"))
 		case "select":
