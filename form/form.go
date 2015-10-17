@@ -51,6 +51,33 @@ func GenInput(tags reflect.StructTag, value interface{}) string {
 	form += "><br>\n"
 	return form
 }
+
+func GenSelect(tags reflect.StructTag) string {
+	var (
+		field   = tags.Get("field")
+		name    = tags.Get("name")
+		options = tags.Get("select")
+	)
+	// add options
+	form := fmt.Sprintf(`<label for="%s">%s</label>`, field, name)
+	form += "\n"
+	form += fmt.Sprintf(`<select name="%s">`, field)
+	form += "\n"
+	for _, option := range strings.Split(options, ",") {
+		form += "\t"
+		selected := ""
+		s := strings.Split(option, ";")
+		if len(s) > 1 {
+			selected = s[1]
+		}
+		optionValues := strings.Split(s[0], "=")
+		form += fmt.Sprintf(`<option value="%s" %s>%s</option>`, optionValues[1], selected, optionValues[0])
+		form += "\n"
+	}
+	form += "</select>"
+	form += "\n"
+	return form
+}
 func FormCreate(form *MyForm) (string, error) {
 	formType := reflect.TypeOf(*form)
 	formValue := reflect.ValueOf(*form)
@@ -68,20 +95,18 @@ func FormCreate(form *MyForm) (string, error) {
 			fallthrough
 		case "textarea":
 			fallthrough
+		case "checkbox":
+			fallthrough
 		case "password":
 			fallthrough
 		case "button":
-			XMLForm += GenInputWithLabel(field.Tag, value)
+			fallthrough
 		case "radio":
 			XMLForm += GenInputWithLabel(field.Tag, value)
 		case "hidden":
 			XMLForm += GenInput(field.Tag, value)
-		case "checkbox":
-			XMLForm += fmt.Sprintf("<label for=\"%s\">%s</label>\n", field.Tag.Get("field"), field.Tag.Get("name"))
-			XMLForm += fmt.Sprintf("<input type=\"%s\" name=\"%s\"><br>\n", field.Tag.Get("type"), field.Tag.Get("name"))
 		case "select":
-			XMLForm += fmt.Sprintf("<label for=\"%s\">%s</label>\n", field.Tag.Get("field"), field.Tag.Get("name"))
-			XMLForm += fmt.Sprintf("<input type=\"%s\" name=\"%s\"><br>\n", field.Tag.Get("type"), field.Tag.Get("name"))
+			XMLForm += GenSelect(field.Tag)
 		default:
 			log.Println("nothin")
 		}
