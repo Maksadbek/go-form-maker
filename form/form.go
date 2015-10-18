@@ -81,7 +81,7 @@ func GenSelect(tags reflect.StructTag) string {
 func FormCreate(form *MyForm) (string, error) {
 	formType := reflect.TypeOf(*form)
 	formValue := reflect.ValueOf(*form)
-	var XMLForm string
+	var XMLForm string = "<form action='/create' method='post' enctype='multipart/form-data'>\n"
 	for i := 0; i < formType.NumField(); i++ {
 		field := formType.Field(i)
 		value := formValue.Field(i)
@@ -111,6 +111,7 @@ func FormCreate(form *MyForm) (string, error) {
 			log.Println("nothin")
 		}
 	}
-	log.Println(XMLForm)
-	return "", nil
+	XMLForm += "<button type='submit'>send</button>"
+	XMLForm += "</form>"
+	return XMLForm, nil
 }
