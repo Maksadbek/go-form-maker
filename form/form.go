@@ -3,20 +3,70 @@ package form
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 )
+
+var radioInputs = make([]string, 0)
+var selectInputs = make(map[string]string)
 
 type MyForm struct {
 	UserName     string `required:"true" field:"name" name:"Имя пользователя" type:"text"`
 	UserPassword string `required:"true" field:"password" name:"Пароль пользователя" type:"password"`
 	Resident     bool   `field:"resident" type:"radio" radio:"1;checked" name:"Резидент РФ"`
-	NoResident   bool   `field:"resident" type:"radio" radio:"2" name:"Не резидент РФ"`
+	NoResident   bool   `field:"noresident" type:"radio" radio:"2" name:"Не резидент РФ"`
 	Gender       string `field:"gender" name:"Пол" type:"select" select:"Не известный=3;selected,Мужской=1,Женский=2"`
 	Age          int64  `field:"age" name:"Возраст" type:"text" default:"true"`
 	Token        string `field:"token" type:"hidden" default:"true"`
 }
 
+func FormRead(myform *MyForm, r *http.Request) error {
+	// set memory size
+	r.ParseMultipartForm(1024)
+	// get type
+	formType := reflect.TypeOf(*myform)
+	// get value
+	formValue := reflect.ValueOf(myform).Elem()
+	// range over fields
+	for i := 0; i < formType.NumField(); i++ {
+		// get field
+		field := formType.Field(i)
+		// get form value by field tag
+		val := r.FormValue(field.Tag.Get("field"))
+		log.Println(field.Tag.Get("field"), val)
+		// switch by type of struct field
+		switch formValue.Field(i).Kind() {
+		case reflect.String:
+			// if the input type is select, the put the selected option value
+			if field.Tag.Get("type") == "select" {
+				formValue.Field(i).SetString(selectInputs[val])
+			} else {
+				formValue.Field(i).SetString(val)
+			}
+		case reflect.Int64:
+			intval, err := strconv.Atoi(val)
+			log.Println(intval)
+			if err != nil {
+				log.Println("error occured while converting str to int: ", err)
+				continue
+			}
+			formValue.Field(i).SetInt(int64(intval))
+		case reflect.Bool:
+			// bool type can be checkbox or radio buttons
+			// in both cases this works
+			for _, v := range radioInputs {
+				if v == val {
+					formValue.Field(i).SetBool(true)
+				}
+			}
+		default:
+			log.Println("type of this field is not processed ", field.Tag.Get("field"))
+		}
+	}
+	return nil
+}
 func GenInputWithLabel(tags reflect.StructTag, value interface{}) string {
 	var (
 		field = tags.Get("field")
@@ -43,6 +93,7 @@ func GenInput(tags reflect.StructTag, value interface{}) string {
 	if inputType == "radio" {
 		s := strings.Split(tags.Get("radio"), ";")
 		form += fmt.Sprintf(` value="%s" `, s[0])
+		radioInputs = append(radioInputs, s[0])
 		if len(s) == 2 {
 			form += s[1]
 		}
@@ -71,6 +122,8 @@ func GenSelect(tags reflect.StructTag) string {
 			selected = s[1]
 		}
 		optionValues := strings.Split(s[0], "=")
+		// fill select inputs map with key and values
+		selectInputs[optionValues[1]] = optionValues[0]
 		form += fmt.Sprintf(`<option value="%s" %s>%s</option>`, optionValues[1], selected, optionValues[0])
 		form += "\n"
 	}
