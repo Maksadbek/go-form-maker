@@ -16,13 +16,12 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	var myform form.MyForm
+	var myform form.MyForm = form.MyForm{Age: 18, Token: "deadbeef"}
 	formxml, err := form.FormCreate(&myform)
 	if err != nil {
 		log.Println("error while building form")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	log.Println(formxml)
 	w.Header().Set("Content-type", "text/html")
 	fmt.Fprintf(w, formxml)
 }
@@ -33,9 +32,10 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	jform, err := json.Marshal(myform)
+	jform, err := json.MarshalIndent(myform, "", "\t")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	log.Println(string(jform))
 	fmt.Fprintf(w, string(jform))
 }
