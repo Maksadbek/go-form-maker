@@ -17,6 +17,7 @@ type MyForm struct {
 	UserPassword string `required:"true" field:"password" name:"Пароль пользователя" type:"password"`
 	Resident     bool   `field:"resident" type:"radio" radio:"1;checked" name:"Резидент РФ"`
 	NoResident   bool   `field:"noresident" type:"radio" radio:"2" name:"Не резидент РФ"`
+	HavePassport bool   `field:"passport" type:"checkbox" checkbox:"2" name:"Est passport"`
 	Gender       string `field:"gender" name:"Пол" type:"select" select:"Не известный=3;selected,Мужской=1,Женский=2"`
 	Age          int64  `field:"age" name:"Возраст" type:"text" default:"true"`
 	Token        string `field:"token" type:"hidden" default:"true"`
@@ -90,8 +91,8 @@ func GenInput(tags reflect.StructTag, value interface{}) string {
 		form += fmt.Sprintf(` value="%v"`, val)
 	}
 	// if input type is radio, then parse its value
-	if inputType == "radio" {
-		s := strings.Split(tags.Get("radio"), ";")
+	if inputType == "radio" || inputType == "checkbox" {
+		s := strings.Split(tags.Get(inputType), ";")
 		form += fmt.Sprintf(` value="%s" `, s[0])
 		radioInputs = append(radioInputs, s[0])
 		if len(s) == 2 {
