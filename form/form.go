@@ -36,7 +36,6 @@ func FormRead(myform *MyForm, r *http.Request) error {
 		field := formType.Field(i)
 		// get form value by field tag
 		val := r.FormValue(field.Tag.Get("field"))
-		log.Println(field.Tag.Get("field"), val)
 		// switch by type of struct field
 		switch formValue.Field(i).Kind() {
 		case reflect.String:
@@ -46,11 +45,27 @@ func FormRead(myform *MyForm, r *http.Request) error {
 			} else {
 				formValue.Field(i).SetString(val)
 			}
+		case reflect.Uint:
+		case reflect.Uint64:
+			intval, err := strconv.ParseUint(val, 10, 64)
+			if err != nil {
+				log.Println("error occured while converting str to uint64: ", err)
+				continue
+			}
+			formValue.Field(i).SetUint(intval)
+		case reflect.Float64:
+			floatval, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				log.Println("error occured while converting str to float64: ", err)
+				continue
+			}
+			formValue.Field(i).SetFloat(floatval)
+		case reflect.Int:
+			fallthrough
 		case reflect.Int64:
 			intval, err := strconv.Atoi(val)
-			log.Println(intval)
 			if err != nil {
-				log.Println("error occured while converting str to int: ", err)
+				log.Println("error occured while converting str to int64: ", err)
 				continue
 			}
 			formValue.Field(i).SetInt(int64(intval))
