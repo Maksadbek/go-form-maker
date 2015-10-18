@@ -31,10 +31,12 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	err := form.FormRead(&myform, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	jform, err := json.MarshalIndent(myform, "", "\t")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	log.Println(string(jform))
 	fmt.Fprintf(w, string(jform))

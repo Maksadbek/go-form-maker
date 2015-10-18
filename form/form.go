@@ -1,6 +1,7 @@
 package form
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 
 var radioInputs = make([]string, 0)
 var selectInputs = make(map[string]string)
+
+var errEmptyField = errors.New("the required field is empty")
 
 type MyForm struct {
 	UserName     string `required:"true" field:"name" name:"Имя пользователя" type:"text"`
@@ -36,6 +39,9 @@ func FormRead(myform *MyForm, r *http.Request) error {
 		field := formType.Field(i)
 		// get form value by field tag
 		val := r.FormValue(field.Tag.Get("field"))
+		if field.Tag.Get("required") == "true" && val == "" {
+			return errEmptyField
+		}
 		// switch by type of struct field
 		switch formValue.Field(i).Kind() {
 		case reflect.String:
