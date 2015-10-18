@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Maksadbek/go-form-maker/form"
 	"log"
@@ -9,6 +10,7 @@ import (
 
 func main() {
 	log.Println("Starting...")
+	http.HandleFunc("/create", createHandler)
 	http.HandleFunc("/", indexHandler)
 	log.Fatal(http.ListenAndServe(":8800", nil))
 }
@@ -23,4 +25,17 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(formxml)
 	w.Header().Set("Content-type", "text/html")
 	fmt.Fprintf(w, formxml)
+}
+
+func createHandler(w http.ResponseWriter, r *http.Request) {
+	var myform form.MyForm
+	err := form.FormRead(&myform, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	jform, err := json.Marshal(myform)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	fmt.Fprintf(w, string(jform))
 }
